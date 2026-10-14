@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bilgi Notu Yazım Denetleyicisi</title>
+<title>ÖD Robotu</title>
 <style>
   :root {
     --zemin: #f4f3ef;
@@ -244,7 +244,7 @@
 <body>
 <div class="kap">
   <header>
-    <h1>Bilgi Notu Yazım Denetleyicisi</h1>
+    <h1>ÖD Robotu</h1>
     <p>Word dosyasını yükleyin ya da metni yapıştırın. TDK yazım kuralları, sayı ve noktalama biçimi ve birim kurallarına takılan yerler listelenir; seçtiğiniz düzeltmeler Word'e "değişiklikleri izle" olarak işlenir.</p>
     <div class="gizlilik">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -291,7 +291,7 @@
             <button class="dugme ikincil" id="csv">Listeyi indir (CSV)</button>
           </div>
           <label class="yazar" id="yazar-alan" hidden>Değişikliklerde görünecek ad
-            <input id="yazar" type="text" value="Yazım Denetleyicisi" maxlength="60">
+            <input id="yazar" type="text" value="ÖD Robotu" maxlength="60">
           </label>
         </div>
       </div>
@@ -703,7 +703,7 @@
         tur: b.tur, yon: b.yon, hedef: b.hedef, bulgu: b
       });
     });
-    var yazar = $('yazar').value.trim() || 'Yazım Denetleyicisi';
+    var yazar = $('yazar').value.trim() || 'ÖD Robotu';
     var tarih = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
     var uygulanan = 0, atlanan = [];
     var id = 0;

@@ -692,7 +692,7 @@
     var pler = paragrafElemanlari(belge);
     var ctx = {
       id: Math.max(enBuyukId(belge) + 1, secenek.idBaslangic || 0),
-      yazar: secenek.yazar || 'Yazım Denetleyicisi',
+      yazar: secenek.yazar || 'ÖD Robotu',
       tarih: secenek.tarih || new Date().toISOString().replace(/\.\d+Z$/, 'Z')
     };
     var uygulanan = [], atlanan = [];

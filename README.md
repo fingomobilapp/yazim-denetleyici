@@ -1,4 +1,4 @@
-# Bilgi Notu Yazım Denetleyicisi
+# ÖD Robotu
 
 Bilgi notunu TDK yazım kuralları, sayı/noktalama biçimi ve birim kurallarına göre tarar, takılan yerleri listeler.
 
