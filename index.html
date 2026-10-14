@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilgi Notu Yazım Denetleyicisi</title>
+<style>
+  :root {
+    --zemin: #f4f3ef;
+    --yuzey: #ffffff;
+    --yuzey-2: #f9f8f5;
+    --cizgi: #dcd9d1;
+    --metin: #1c2228;
+    --soluk: #5f6870;
+    --vurgu: #1d4a6e;
+    --vurgu-zemin: #e6eef5;
+    --hata: #a3312b;
+    --hata-zemin: #fbe9e7;
+    --kontrol: #8a5a00;
+    --kontrol-zemin: #fdf2dc;
+    --tamam: #276b5d;
+    --tamam-zemin: #e3f2ee;
+    --tdk: #1d4a6e;
+    --bicim: #276b5d;
+    --birim: #6b3f86;
+    --isaret: #ffe28a;
+    --isaret-metin: #1c2228;
+    --golge: 0 1px 2px rgba(20, 24, 28, .06), 0 2px 8px rgba(20, 24, 28, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --zemin: #15191d;
+      --yuzey: #1d2227;
+      --yuzey-2: #22282e;
+      --cizgi: #333b43;
+      --metin: #e6e8ea;
+      --soluk: #9aa3ab;
+      --vurgu: #8db8dc;
+      --vurgu-zemin: #22313e;
+      --hata: #f08b83;
+      --hata-zemin: #3a2321;
+      --kontrol: #e5b75c;
+      --kontrol-zemin: #382c17;
+      --tamam: #79c2b1;
+      --tamam-zemin: #1d3530;
+      --tdk: #8db8dc;
+      --bicim: #79c2b1;
+      --birim: #c7a0e0;
+      --isaret: #6b5a1e;
+      --isaret-metin: #fff6d6;
+      --golge: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--zemin);
+    color: var(--metin);
+    font: 15px/1.55 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  .kap { max-width: 1000px; margin: 0 auto; padding: 32px 16px 64px; }
+
+  header { margin-bottom: 24px; }
+  header h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 600; font-size: 28px; line-height: 1.2; margin: 0 0 6px;
+    letter-spacing: -.01em;
+  }
+  header p { margin: 0; color: var(--soluk); max-width: 68ch; }
+  .gizlilik {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 14px; padding: 6px 12px; border-radius: 999px;
+    background: var(--vurgu-zemin); color: var(--vurgu); font-size: 13px; font-weight: 600;
+  }
+  .gizlilik svg { flex: none; }
+
+  .kart {
+    background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px;
+    box-shadow: var(--golge);
+  }
+
+  /* Giriş alanı: dosya ve metin yan yana */
+  .giris { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .giris .kart { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .giris h2 { margin: 0; font-size: 15px; }
+  .giris .alt { margin: 0; font-size: 13px; color: var(--soluk); }
+
+  .birak {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    min-height: 200px; padding: 24px; text-align: center;
+    border: 2px dashed var(--cizgi); border-radius: 10px; background: var(--yuzey-2);
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .birak:hover, .birak.uzerinde { border-color: var(--vurgu); background: var(--vurgu-zemin); }
+  .birak:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+  .birak strong { font-size: 15px; }
+  .birak span { color: var(--soluk); font-size: 13px; }
+  .birak svg { color: var(--vurgu); }
+
+  textarea {
+    flex: 1; width: 100%; min-height: 200px; resize: vertical; padding: 12px;
+    font: inherit; color: inherit; background: var(--yuzey-2);
+    border: 1px solid var(--cizgi); border-radius: 8px;
+  }
+  textarea:focus { outline: 2px solid var(--vurgu); outline-offset: 0; }
+
+  .dugme {
+    appearance: none; cursor: pointer; font: inherit; font-weight: 600;
+    padding: 9px 16px; border-radius: 8px; border: 1px solid var(--vurgu);
+    background: var(--vurgu); color: var(--yuzey);
+  }
+  .dugme.ikincil { background: transparent; color: var(--vurgu); }
+  .dugme:disabled { opacity: .45; cursor: not-allowed; }
+  .dugme:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+  .metin-dugme {
+    appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--vurgu);
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .metin-dugme:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; border-radius: 3px; }
+  .satir { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .bildirim { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 14px; }
+  .bildirim[hidden] { display: none; }
+  .bildirim.hata { background: var(--hata-zemin); color: var(--hata); }
+  .bildirim.tamam { background: var(--tamam-zemin); color: var(--tamam); }
+  .bildirim ul { margin: 6px 0 0; padding-left: 20px; }
+
+  /* Sonuçlar */
+  #sonuc { margin-top: 24px; }
+  #sonuc[hidden] { display: none; }
+  .ozet { padding: 18px 20px; display: grid; gap: 16px; }
+  .ozet-ust { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; justify-content: space-between; }
+  .dosya-adi { font-weight: 600; word-break: break-all; }
+  .sayilar { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 8px; }
+  .sayi { display: flex; flex-direction: column; }
+  .sayi b { font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .sayi span { font-size: 12px; color: var(--soluk); text-transform: uppercase; letter-spacing: .04em; }
+  .sayi.hata b { color: var(--hata); }
+  .sayi.kontrol b { color: var(--kontrol); }
+  .sayi.secili b { color: var(--tamam); }
+
+  .eylem { display: grid; gap: 10px; justify-items: end; }
+  .eylem .satir { justify-content: flex-end; }
+  .yazar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--soluk); }
+  .yazar input {
+    font: inherit; font-size: 13px; color: var(--metin); background: var(--yuzey-2);
+    border: 1px solid var(--cizgi); border-radius: 6px; padding: 4px 8px; width: 190px;
+  }
+  .yazar input:focus { outline: 2px solid var(--vurgu); outline-offset: 0; }
+
+  .secim { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--soluk);
+    padding-top: 14px; border-top: 1px solid var(--cizgi); }
+
+  .filtreler { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .filtreler .etiket { font-size: 12px; color: var(--soluk); margin-right: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .cip {
+    appearance: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid var(--cizgi);
+    background: var(--yuzey-2); color: var(--soluk);
+  }
+  .cip[aria-pressed="true"] { background: var(--vurgu-zemin); color: var(--metin); border-color: var(--vurgu); }
+  .cip:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+  .ayrac { width: 1px; height: 20px; background: var(--cizgi); margin: 0 6px; }
+
+  .temiz { padding: 28px 20px; text-align: center; color: var(--soluk); }
+  .temiz strong { display: block; color: var(--metin); font-size: 17px; margin-bottom: 4px; }
+
+  .paragraf { margin-top: 12px; overflow: hidden; }
+  .paragraf-baslik {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--yuzey-2); border-bottom: 1px solid var(--cizgi);
+    font-size: 13px;
+  }
+  .paragraf-baslik b { font-size: 13px; }
+  .paragraf-baslik .onizleme { color: var(--soluk); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .konum {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    padding: 1px 6px; border-radius: 4px; background: var(--vurgu-zemin); color: var(--vurgu);
+  }
+
+  .bulgu { padding: 14px 16px; border-top: 1px solid var(--cizgi); display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+  .bulgu:first-of-type { border-top: 0; }
+  .bulgu.secilmedi .duzeltme, .bulgu.secilmedi .baglam { opacity: .6; }
+  .onay { grid-row: span 3; padding-top: 2px; }
+  .onay input { width: 18px; height: 18px; accent-color: var(--tamam); cursor: pointer; margin: 0; }
+  .baglam { font-size: 14px; color: var(--soluk); word-break: break-word; }
+  .baglam mark {
+    background: var(--isaret); color: var(--isaret-metin); padding: 0 2px; border-radius: 3px;
+    font-weight: 600;
+  }
+  .duzeltme { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; }
+  .eski { text-decoration: line-through; text-decoration-color: var(--hata); color: var(--hata); font-weight: 600; white-space: pre-wrap; }
+  .yeni { color: var(--tamam); font-weight: 700; white-space: pre-wrap; }
+  .ok { color: var(--soluk); }
+  .yeni.yok { color: var(--soluk); font-weight: 600; font-style: italic; }
+  .algi { font-size: 13px; color: var(--soluk); }
+  .algi b { color: var(--metin); font-weight: 600; }
+  .aciklama { font-size: 13px; color: var(--soluk); }
+  .rozetler { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .rozet { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px; letter-spacing: .03em; text-transform: uppercase; }
+  .rozet.hata { background: var(--hata-zemin); color: var(--hata); }
+  .rozet.kontrol { background: var(--kontrol-zemin); color: var(--kontrol); }
+  .rozet.TDK { color: var(--tdk); border: 1px solid currentColor; }
+  .rozet.Biçim { color: var(--bicim); border: 1px solid currentColor; }
+  .rozet.Birim { color: var(--birim); border: 1px solid currentColor; }
+  .cakisma { display: none; font-size: 12px; font-weight: 600; color: var(--kontrol); }
+  .bulgu.cakisiyor .cakisma { display: inline; }
+  .kopyala {
+    appearance: none; cursor: pointer; margin-left: auto;
+    font: inherit; font-size: 12px; font-weight: 600; color: var(--vurgu);
+    background: none; border: 1px solid var(--cizgi); border-radius: 6px; padding: 2px 8px;
+  }
+  .kopyala:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+  details.kurallar { margin-top: 32px; }
+  details.kurallar summary { cursor: pointer; padding: 14px 18px; font-weight: 600; }
+  details.kurallar summary:focus-visible { outline: 2px solid var(--vurgu); outline-offset: -2px; border-radius: 12px; }
+  .tablo-kap { overflow-x: auto; border-top: 1px solid var(--cizgi); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--cizgi); vertical-align: top; }
+  th { background: var(--yuzey-2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--soluk); }
+  td.ornek { white-space: nowrap; }
+
+  footer { margin-top: 28px; color: var(--soluk); font-size: 13px; }
+  footer p { margin: 6px 0; max-width: 78ch; }
+
+  @media (max-width: 720px) {
+    .giris { grid-template-columns: 1fr; }
+    .birak, textarea { min-height: 150px; }
+    .eylem { justify-items: start; }
+    .eylem .satir { justify-content: flex-start; }
+  }
+  @media (max-width: 560px) {
+    header h1 { font-size: 23px; }
+    .kap { padding-top: 20px; }
+    .kopyala { margin-left: 0; }
+    .ayrac { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="kap">
+  <header>
+    <h1>Bilgi Notu Yazım Denetleyicisi</h1>
+    <p>Word dosyasını yükleyin ya da metni yapıştırın. TDK yazım kuralları, sayı ve noktalama biçimi ve birim kurallarına takılan yerler listelenir; seçtiğiniz düzeltmeler Word'e "değişiklikleri izle" olarak işlenir.</p>
+    <div class="gizlilik">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Dosyanız bilgisayarınızdan çıkmaz; denetim tarayıcıda yapılır.
+    </div>
+  </header>
+
+  <section class="giris" aria-label="Not girişi">
+    <div class="kart">
+      <h2>Word dosyası</h2>
+      <p class="alt">Düzeltmeler izlenen değişiklik olarak işlenmiş .docx indirilir.</p>
+      <label class="birak" id="birak" tabindex="0">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+        <strong>.docx dosyasını buraya sürükleyin</strong>
+        <span>ya da seçmek için tıklayın</span>
+        <input type="file" id="dosya" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      </label>
+    </div>
+    <div class="kart">
+      <h2><label for="metin">Metin yapıştır</label></h2>
+      <p class="alt">Düzeltilmiş metin kopyalanabilir. Her satır ayrı paragraf sayılır.</p>
+      <textarea id="metin" placeholder="Notun metnini buraya yapıştırın…"></textarea>
+      <div class="satir"><button class="dugme" id="metin-denetle">Metni denetle</button></div>
+    </div>
+  </section>
+  <div class="bildirim hata" id="uyari" role="alert" hidden></div>
+
+  <section id="sonuc" hidden aria-live="polite">
+    <div class="kart ozet">
+      <div class="ozet-ust">
+        <div>
+          <div class="dosya-adi" id="kaynak-adi"></div>
+          <div class="sayilar">
+            <div class="sayi hata"><b id="say-hata">0</b><span>Hata</span></div>
+            <div class="sayi kontrol"><b id="say-kontrol">0</b><span>Kontrol</span></div>
+            <div class="sayi secili"><b id="say-secili">0</b><span>Uygulanacak</span></div>
+            <div class="sayi"><b id="say-paragraf">0</b><span>Paragraf</span></div>
+          </div>
+        </div>
+        <div class="eylem">
+          <div class="satir">
+            <button class="dugme" id="docx-indir" hidden>Değişiklikleri izle ile indir (.docx)</button>
+            <button class="dugme" id="metin-kopyala" hidden>Düzeltilmiş metni kopyala</button>
+            <button class="dugme ikincil" id="csv">Listeyi indir (CSV)</button>
+          </div>
+          <label class="yazar" id="yazar-alan" hidden>Değişikliklerde görünecek ad
+            <input id="yazar" type="text" value="Yazım Denetleyicisi" maxlength="60">
+          </label>
+        </div>
+      </div>
+      <div class="algi" id="algi" hidden></div>
+      <div class="bildirim tamam" id="bilgi" role="status" hidden style="margin-top:0"></div>
+      <div class="filtreler" id="filtreler" aria-label="Filtreler"></div>
+      <div class="secim">
+        <span>Seçim:</span>
+        <button class="metin-dugme" data-sec="hata">Yalnızca hatalar</button>
+        <button class="metin-dugme" data-sec="hepsi">Hepsi</button>
+        <button class="metin-dugme" data-sec="hicbiri">Hiçbiri</button>
+        <span>· Kontrol bulguları varsayılan olarak seçili gelmez.</span>
+      </div>
+    </div>
+    <div id="liste"></div>
+  </section>
+
+  <details class="kart kurallar">
+    <summary id="kural-baslik">Kural listesi</summary>
+    <div class="tablo-kap">
+      <table>
+        <thead><tr><th>Kategori</th><th>Seviye</th><th>Örnek</th><th>Açıklama</th></tr></thead>
+        <tbody id="kural-tablo"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <footer>
+    <p><strong>Hata</strong>: kuralla çelişen yazım. <strong>Kontrol</strong>: büyük ihtimalle hata, ama bağlama göre doğru da olabilir; bakıp karar verin.</p>
+    <p>İndirilen dosyada her düzeltme Word'de <em>Gözden Geçir &gt; Kabul Et / Reddet</em> ile tek tek onaylanabilir. Özgün dosyanız değiştirilmez.</p>
+    <p>Bu araç yalnızca kural listesindeki hataları yakalar. Anlatım bozukluğu, cümle yapısı ve üslup sorunlarını yakalamaz.</p>
+    <p id="surum"></p>
+  </footer>
+</div>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="motor.js"></script>
+<script src="birim-kurallari.js"></script>
+<script src="tdkkuralları.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var D = window.Denetleyici;
+  var KURALLAR = window.KURALLAR || [];
+  var DOCX_TURU = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  var durum = {
+    tur: null,          // 'docx' | 'metin'
+    kaynak: '',
+    zip: null,
+    xmller: {},         // parça yolu -> xml metni
+    paragraflar: [],
+    bulgular: [],
+    secili: [],         // bulgu indeksine göre true/false
+    filtre: { kategori: {}, seviye: { hata: true, kontrol: true } }
+  };
+  D.KATEGORILER.forEach(function (k) { durum.filtre.kategori[k] = true; });
+
+  function kacis(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function gorunur(s) {
+    // Baştaki/sondaki boşlukları görünür kılar.
+    return s.replace(/^[  ]+|[  ]+$/g, function (b) { return new Array(b.length + 1).join('␣'); });
+  }
+  function bildir(id, html, tur) {
+    var u = $(id);
+    if (!html) { u.hidden = true; u.innerHTML = ''; return; }
+    u.innerHTML = html; u.hidden = false;
+    if (tur) u.className = 'bildirim ' + tur;
+  }
+  function uyar(mesaj) { bildir('uyari', mesaj ? kacis(mesaj) : '', 'hata'); }
+
+  // Değişiklik yazarı adı bu tarayıcıda hatırlanır.
+  try { var kayitli = localStorage.getItem('denetleyici-yazar'); if (kayitli) $('yazar').value = kayitli; } catch (e) { /* yok say */ }
+  $('yazar').addEventListener('change', function () {
+    try { localStorage.setItem('denetleyici-yazar', $('yazar').value.trim()); } catch (e) { /* yok say */ }
+  });
+
+  // --- Dosya yükleme ------------------------------------------------------
+  var birak = $('birak');
+  var dosyaGirdi = $('dosya');
+  birak.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dosyaGirdi.click(); }
+  });
+  ['dragenter', 'dragover'].forEach(function (ad) {
+    birak.addEventListener(ad, function (e) { e.preventDefault(); birak.classList.add('uzerinde'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ad) {
+    birak.addEventListener(ad, function (e) { e.preventDefault(); birak.classList.remove('uzerinde'); });
+  });
+  birak.addEventListener('drop', function (e) {
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) dosyaOku(f);
+  });
+  dosyaGirdi.addEventListener('change', function () {
+    if (dosyaGirdi.files[0]) dosyaOku(dosyaGirdi.files[0]);
+    dosyaGirdi.value = '';
+  });
+  // Sayfanın başka bir yerine bırakılan dosyanın tarayıcıda açılmasını önler.
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  var PARCALAR = ['word/document.xml', 'word/footnotes.xml'];
+  var STIL_YOLU = 'word/styles.xml';
+  var BICIM_KURALI = { id: 'paragraf-araligi', kategori: 'Biçim', seviye: 'hata',
+    aciklama: 'Künye satırlarında Sonra boşluğu ve künyeden sonraki başlıkta Önce boşluğu (birim-kurallari.js ayarlarına göre).',
+    ornek: 'Başlık Önce: 0 nk → 12 nk' };
+
+  function dosyaOku(f) {
+    uyar('');
+    if (/\.doc$/i.test(f.name)) {
+      uyar('Eski Word biçimi (.doc) okunamıyor. Dosyayı Word\'de açıp "Farklı Kaydet > Word Belgesi (.docx)" ile kaydedin.');
+      return;
+    }
+    if (!/\.docx$/i.test(f.name)) {
+      uyar('Yalnızca .docx dosyaları okunabiliyor. Diğer biçimler için metni yapıştırabilirsiniz.');
+      return;
+    }
+    var zip;
+    JSZip.loadAsync(f).then(function (z) {
+      zip = z;
+      if (!zip.file(PARCALAR[0])) throw new Error('Dosyanın içinde Word belge gövdesi bulunamadı.');
+      return Promise.all(PARCALAR.concat([STIL_YOLU]).map(function (yol) {
+        var g = zip.file(yol);
+        return g ? g.async('string') : null;
+      }));
+    }).then(function (xmller) {
+      var paragraflar = [];
+      durum.xmller = {};
+      PARCALAR.forEach(function (yol, i) {
+        if (!xmller[i]) return;
+        durum.xmller[yol] = xmller[i];
+        D.docxParagraflari(xmller[i]).forEach(function (p) {
+          p.parca = yol;
+          p.dipnot = yol !== PARCALAR[0];
+          // Dipnotlardaki boş ayırıcı paragraflar alınmaz.
+          if (!p.dipnot || p.metin.trim()) paragraflar.push(p);
+        });
+      });
+      durum.zip = zip;
+      // Künye ve başlık aralığı denetimi (yalnızca belge gövdesinde)
+      var bc = D.docxBicimDenetle(xmller[0], xmller[PARCALAR.length], window.BIRIM_AYAR || {});
+      var govdeIndeks = {};
+      paragraflar.forEach(function (p, i) { if (!p.dipnot) govdeIndeks[p.pIndeks] = i; });
+      var ek = bc.bulgular.map(function (b) {
+        return { paragraf: govdeIndeks[b.pIndeks], bas: 0, son: 0, tur: 'bicim', yon: b.yon, hedef: b.hedef,
+          bulunan: b.bulunan, oneri: b.oneri, aciklama: b.aciklama, kural: BICIM_KURALI };
+      });
+      durum.algi = {
+        kunye: bc.kunye.map(function (pi) { return govdeIndeks[pi]; }),
+        baslik: bc.baslik === null ? null : govdeIndeks[bc.baslik]
+      };
+      calistir('docx', paragraflar, f.name, ek);
+    }).catch(function (e) {
+      uyar('Dosya okunamadı: ' + e.message + ' Dosya parola korumalıysa korumayı kaldırıp tekrar deneyin.');
+    });
+  }
+
+  $('metin-denetle').addEventListener('click', function () {
+    uyar('');
+    var metin = $('metin').value;
+    if (!metin.trim()) { uyar('Denetlenecek metin yok.'); return; }
+    var paragraflar = metin.split(/\r?\n/).map(function (s) { return { metin: s, tablo: false }; });
+    durum.zip = null; durum.xmller = {}; durum.algi = null;
+    calistir('metin', paragraflar, 'Yapıştırılan metin');
+  });
+
+  // --- Denetim ------------------------------------------------------------
+  function uygulanabilir(b) { return b.oneri != null; }
+
+  function calistir(tur, paragraflar, kaynak, ekBulgular) {
+    var sonuc = D.denetle(paragraflar, KURALLAR);
+    if (ekBulgular && ekBulgular.length) {
+      sonuc.bulgular = sonuc.bulgular.concat(ekBulgular).sort(function (a, b) {
+        return a.paragraf - b.paragraf || a.bas - b.bas || a.son - b.son;
+      });
+    }
+    var no = 0;
+    paragraflar.forEach(function (p) { p.no = p.metin.trim() ? ++no : null; });
+    durum.tur = tur;
+    durum.kaynak = kaynak;
+    durum.paragraflar = paragraflar;
+    durum.bulgular = sonuc.bulgular;
+    durum.secili = sonuc.bulgular.map(function (b) { return b.kural.seviye === 'hata' && uygulanabilir(b); });
+    if (sonuc.hatalar.length) uyar('Bazı kurallar çalıştırılamadı: ' + sonuc.hatalar.join(' | '));
+    $('say-paragraf').textContent = no;
+    $('kaynak-adi').textContent = kaynak;
+    $('docx-indir').hidden = tur !== 'docx';
+    $('yazar-alan').hidden = tur !== 'docx';
+    $('metin-kopyala').hidden = tur !== 'metin';
+    bildir('bilgi', '');
+    algiCiz();
+    $('sonuc').hidden = false;
+    filtreleriCiz();
+    listeyiCiz();
+    $('sonuc').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Künye ve başlığın nasıl algılandığını gösterir (yanlış algıyı fark etmek için).
+  function algiCiz() {
+    var el = $('algi');
+    if (!durum.algi) { el.hidden = true; return; }
+    var a = durum.algi, P = durum.paragraflar;
+    var ayar = window.BIRIM_AYAR || {};
+    if (!a.kunye.length) {
+      el.innerHTML = '<b>Künye algılanamadı.</b> Notun başında "Etiket: değer" biçiminde satır bulunamadığı için künye ve başlık aralığı denetlenmedi.';
+    } else {
+      var ilk = P[a.kunye[0]].no, son = P[a.kunye[a.kunye.length - 1]].no;
+      var html = '<b>Künye:</b> ' + a.kunye.length + ' satır (Paragraf ' + ilk + (son !== ilk ? '–' + son : '') + ')';
+      if (a.baslik != null) html += ' · <b>Başlık:</b> Paragraf ' + P[a.baslik].no + ' «' + kacis(P[a.baslik].metin.trim().slice(0, 70)) + '»';
+      html += ' · Hedef: künye Sonra ' + ((ayar.kunye && ayar.kunye.satirSonrasiBosluk) || 0) + ' nk, başlık Önce ' +
+        ((ayar.baslik && ayar.baslik.oncesiBosluk != null) ? ayar.baslik.oncesiBosluk : 12) + ' nk';
+      el.innerHTML = html;
+    }
+    el.hidden = false;
+  }
+
+  function filtrelenmis() {
+    return durum.bulgular.filter(function (b) {
+      return durum.filtre.kategori[b.kural.kategori] && durum.filtre.seviye[b.kural.seviye];
+    });
+  }
+
+  function secilenler() {
+    return durum.bulgular.filter(function (b, i) { return durum.secili[i]; });
+  }
+
+  function filtreleriCiz() {
+    var say = function (alan, deger) {
+      return durum.bulgular.filter(function (b) { return b.kural[alan] === deger; }).length;
+    };
+    $('say-hata').textContent = say('seviye', 'hata');
+    $('say-kontrol').textContent = say('seviye', 'kontrol');
+    var html = '<span class="etiket">Göster</span>';
+    D.KATEGORILER.forEach(function (k) {
+      html += '<button class="cip" data-alan="kategori" data-deger="' + k + '" aria-pressed="' + durum.filtre.kategori[k] + '">' +
+        kacis(k) + ' · ' + say('kategori', k) + '</button>';
+    });
+    html += '<span class="ayrac" aria-hidden="true"></span>';
+    ['hata', 'kontrol'].forEach(function (s) {
+      html += '<button class="cip" data-alan="seviye" data-deger="' + s + '" aria-pressed="' + durum.filtre.seviye[s] + '">' +
+        (s === 'hata' ? 'Hata' : 'Kontrol') + '</button>';
+    });
+    $('filtreler').innerHTML = html;
+  }
+
+  $('filtreler').addEventListener('click', function (e) {
+    var c = e.target.closest('.cip');
+    if (!c) return;
+    var alan = c.getAttribute('data-alan'), deger = c.getAttribute('data-deger');
+    durum.filtre[alan][deger] = !durum.filtre[alan][deger];
+    c.setAttribute('aria-pressed', durum.filtre[alan][deger]);
+    listeyiCiz();
+  });
+
+  function baglam(metin, bas, son) {
+    var PAY = 55;
+    var a = Math.max(0, bas - PAY), z = Math.min(metin.length, son + PAY);
+    if (a > 0) { var bosA = metin.lastIndexOf(' ', a); a = bosA > bas - PAY - 20 ? bosA + 1 : a; }
+    if (z < metin.length) { var bosZ = metin.indexOf(' ', z); z = bosZ > 0 && bosZ < son + PAY + 20 ? bosZ : z; }
+    return (a > 0 ? '… ' : '') +
+      kacis(metin.slice(a, bas)) +
+      '<mark>' + kacis(gorunur(metin.slice(bas, son))) + '</mark>' +
+      kacis(metin.slice(son, z)) +
+      (z < metin.length ? ' …' : '');
+  }
+
+  function listeyiCiz() {
+    var liste = $('liste');
+    var bulgular = filtrelenmis();
+    if (!durum.bulgular.length) {
+      liste.innerHTML = '<div class="kart temiz" style="margin-top:12px"><strong>Kurallara takılan bir ifade bulunamadı.</strong>' +
+        'Bu, notun hatasız olduğu anlamına gelmez; araç yalnızca kural listesindeki durumları denetler.</div>';
+      seciliGuncelle();
+      return;
+    }
+    if (!bulgular.length) {
+      liste.innerHTML = '<div class="kart temiz" style="margin-top:12px">Seçili filtrelerde gösterilecek bulgu yok.</div>';
+      seciliGuncelle();
+      return;
+    }
+    var gruplar = [];
+    bulgular.forEach(function (b) {
+      var son = gruplar[gruplar.length - 1];
+      if (!son || son.paragraf !== b.paragraf) gruplar.push(son = { paragraf: b.paragraf, ogeler: [] });
+      son.ogeler.push(b);
+    });
+    var html = '';
+    gruplar.forEach(function (g) {
+      var p = durum.paragraflar[g.paragraf];
+      var konum = p.dipnot ? '<span class="konum">Dipnot</span>' : (p.tablo ? '<span class="konum">Tablo</span>' : '');
+      html += '<article class="kart paragraf"><div class="paragraf-baslik"><b>Paragraf ' + p.no + '</b>' + konum +
+        '<span class="onizleme">' + kacis(p.metin.trim().slice(0, 90)) + '</span></div>';
+      g.ogeler.forEach(function (b) {
+        var k = b.kural;
+        var i = durum.bulgular.indexOf(b);
+        var bicim = b.tur === 'bicim';
+        var baglamHtml = bicim
+          ? kacis(p.metin.trim().slice(0, 120)) + (p.metin.trim().length > 120 ? ' …' : '')
+          : baglam(p.metin, b.bas, b.son);
+        var yeniHtml = uygulanabilir(b)
+          ? '<span class="yeni">' + kacis(gorunur(b.oneri)) + '</span>'
+          : '<span class="yeni yok">Otomatik öneri yok, elle düzeltin</span>';
+        html += '<div class="bulgu" data-i="' + i + '">' +
+          '<div class="onay"><input type="checkbox" data-i="' + i + '"' + (durum.secili[i] ? ' checked' : '') +
+          (uygulanabilir(b) ? '' : ' disabled') + ' aria-label="Bu düzeltmeyi uygula"></div>' +
+          '<div class="baglam">' + baglamHtml + '</div>' +
+          '<div class="duzeltme"><span class="eski"' + (bicim ? ' style="text-decoration:none"' : '') + '>' + kacis(gorunur(b.bulunan)) + '</span>' +
+          '<span class="ok" aria-label="yerine">→</span>' + yeniHtml +
+          '<span class="cakisma">Başka bir düzeltmeyle aynı yere denk geliyor; uygulanmayacak.</span>' +
+          '<button class="kopyala" data-i="' + i + '" title="Word\'de Ctrl+F ile aramak için kopyalar">Aramak için kopyala</button></div>' +
+          '<div class="rozetler"><span class="rozet ' + k.seviye + '">' + (k.seviye === 'hata' ? 'Hata' : 'Kontrol') + '</span>' +
+          '<span class="rozet ' + kacis(k.kategori) + '">' + kacis(k.kategori) + '</span>' +
+          '<span class="aciklama">' + kacis(b.aciklama || k.aciklama) + '</span></div>' +
+          '</div>';
+      });
+      html += '</article>';
+    });
+    liste.innerHTML = html;
+    seciliGuncelle();
+  }
+
+  // Seçim sayısını ve çakışma uyarılarını günceller.
+  function seciliGuncelle() {
+    var ayik = D.cakismalariAyikla(secilenler());
+    var cakisan = {};
+    ayik.cakisan.forEach(function (b) { cakisan[durum.bulgular.indexOf(b)] = true; });
+    $('say-secili').textContent = ayik.kabul.length;
+    var bos = ayik.kabul.length === 0;
+    $('docx-indir').disabled = bos;
+    $('metin-kopyala').disabled = bos;
+    Array.prototype.forEach.call(document.querySelectorAll('.bulgu'), function (el) {
+      var i = +el.getAttribute('data-i');
+      el.classList.toggle('secilmedi', !durum.secili[i]);
+      el.classList.toggle('cakisiyor', !!cakisan[i]);
+    });
+  }
+
+  $('liste').addEventListener('change', function (e) {
+    if (e.target.type !== 'checkbox') return;
+    durum.secili[+e.target.getAttribute('data-i')] = e.target.checked;
+    seciliGuncelle();
+  });
+
+  document.querySelector('.secim').addEventListener('click', function (e) {
+    var d = e.target.closest('[data-sec]');
+    if (!d) return;
+    var tur = d.getAttribute('data-sec');
+    durum.secili = durum.bulgular.map(function (b) {
+      if (!uygulanabilir(b)) return false;
+      return tur === 'hepsi' ? true : tur === 'hata' ? b.kural.seviye === 'hata' : false;
+    });
+    listeyiCiz();
+  });
+
+  $('liste').addEventListener('click', function (e) {
+    var d = e.target.closest('.kopyala');
+    if (!d) return;
+    var b = durum.bulgular[+d.getAttribute('data-i')];
+    var p = durum.paragraflar[b.paragraf].metin;
+    // Ctrl+F'de tek bir yer bulunabilsin diye kısa ifadeler çevresiyle kopyalanır.
+    var a = Math.max(0, p.lastIndexOf(' ', Math.max(0, b.bas - 2)) + 1);
+    var z = p.indexOf(' ', b.son + 1); if (z < 0) z = p.length;
+    var metin = b.tur === 'bicim' ? p.trim().slice(0, 40)
+      : (/^\s+$/.test(b.bulunan) || b.bulunan.length < 6) ? p.slice(a, z) : b.bulunan;
+    panoya(metin, function () {
+      var eski = d.textContent; d.textContent = 'Kopyalandı';
+      setTimeout(function () { d.textContent = eski; }, 1200);
+    });
+  });
+
+  function panoya(metin, bitti) {
+    var yedek = function () {
+      var t = document.createElement('textarea');
+      t.value = metin; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); } catch (e) { /* yok say */ }
+      document.body.removeChild(t);
+      bitti();
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(metin).then(bitti, yedek);
+    else yedek();
+  }
+
+  function indir(blob, ad) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = ad;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+  function dosyaAdi(ek) {
+    return durum.kaynak.replace(/\.docx$/i, '').replace(/[^\p{L}\p{N}_-]+/gu, '_') + ek;
+  }
+
+  // --- Değişiklikleri izle ile .docx -------------------------------------
+  $('docx-indir').addEventListener('click', function () {
+    var ayik = D.cakismalariAyikla(secilenler());
+    var parcaya = {};
+    ayik.kabul.forEach(function (b) {
+      var p = durum.paragraflar[b.paragraf];
+      (parcaya[p.parca] = parcaya[p.parca] || []).push({
+        pIndeks: p.pIndeks, bas: b.bas, son: b.son, bulunan: b.bulunan, oneri: b.oneri,
+        tur: b.tur, yon: b.yon, hedef: b.hedef, bulgu: b
+      });
+    });
+    var yazar = $('yazar').value.trim() || 'Yazım Denetleyicisi';
+    var tarih = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    var uygulanan = 0, atlanan = [];
+    var id = 0;
+    var zip;
+    // Özgün zip'e dokunmamak için yeniden açılır.
+    durum.zip.generateAsync({ type: 'arraybuffer' }).then(function (ab) {
+      return JSZip.loadAsync(ab);
+    }).then(function (z) {
+      zip = z;
+      Object.keys(parcaya).forEach(function (yol) {
+        var s = D.docxDuzelt(durum.xmller[yol], parcaya[yol], { yazar: yazar, tarih: tarih, idBaslangic: id });
+        id = s.sonId + 1;
+        uygulanan += s.uygulanan.length;
+        atlanan = atlanan.concat(s.atlanan);
+        zip.file(yol, s.xml);
+      });
+      return zip.generateAsync({ type: 'blob', mimeType: DOCX_TURU, compression: 'DEFLATE' });
+    }).then(function (blob) {
+      indir(blob, dosyaAdi('_denetlendi.docx'));
+      var html = '<strong>' + uygulanan + ' düzeltme izlenen değişiklik olarak işlendi.</strong> ' +
+        'Word\'de <em>Gözden Geçir</em> sekmesinden tek tek kabul ya da reddedebilirsiniz.';
+      if (ayik.cakisan.length) html += '<br>' + ayik.cakisan.length + ' öneri başka bir düzeltmeyle çakıştığı için işlenmedi.';
+      if (atlanan.length) {
+        html += '<br>Şu düzeltmeler işlenemedi; Word\'de elle yapmanız gerekir:<ul>' + atlanan.map(function (a) {
+          return '<li>«' + kacis(gorunur(a.d.bulunan)) + '» → «' + kacis(gorunur(a.d.oneri)) + '» (' + kacis(a.neden) + ')</li>';
+        }).join('') + '</ul>';
+      }
+      bildir('bilgi', html, atlanan.length ? 'hata' : 'tamam');
+    }).catch(function (e) {
+      bildir('bilgi', 'Dosya oluşturulamadı: ' + kacis(e.message), 'hata');
+    });
+  });
+
+  // --- Düzeltilmiş metin ---------------------------------------------------
+  $('metin-kopyala').addEventListener('click', function () {
+    var ayik = D.cakismalariAyikla(secilenler());
+    var metin = durum.paragraflar.map(function (p, i) {
+      return D.metneUygula(p.metin, ayik.kabul.filter(function (b) { return b.paragraf === i; }));
+    }).join('\n');
+    var d = $('metin-kopyala');
+    panoya(metin, function () {
+      var eski = d.textContent; d.textContent = 'Kopyalandı';
+      setTimeout(function () { d.textContent = eski; }, 1400);
+      bildir('bilgi', '<strong>' + ayik.kabul.length + ' düzeltme uygulanmış metin panoya kopyalandı.</strong>' +
+        (ayik.cakisan.length ? ' ' + ayik.cakisan.length + ' öneri çakıştığı için uygulanmadı.' : ''), 'tamam');
+    });
+  });
+
+  // --- CSV ----------------------------------------------------------------
+  $('csv').addEventListener('click', function () {
+    var hucre = function (s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; };
+    var satirlar = [['Paragraf', 'Konum', 'Bulunan', 'Öneri', 'Seviye', 'Kategori', 'Uygulanacak', 'Açıklama', 'Bağlam']];
+    filtrelenmis().forEach(function (b) {
+      var p = durum.paragraflar[b.paragraf];
+      var a = Math.max(0, b.bas - 50), z = Math.min(p.metin.length, b.son + 50);
+      satirlar.push([p.no, p.dipnot ? 'Dipnot' : (p.tablo ? 'Tablo' : 'Metin'), gorunur(b.bulunan), b.oneri == null ? '(öneri yok)' : gorunur(b.oneri),
+        b.kural.seviye === 'hata' ? 'Hata' : 'Kontrol', b.kural.kategori,
+        durum.secili[durum.bulgular.indexOf(b)] ? 'Evet' : 'Hayır', b.aciklama || b.kural.aciklama, p.metin.slice(a, z)]);
+    });
+    // Türkçe Excel noktalı virgülle ayrılmış dosyayı doğrudan sütunlara böler.
+    var csv = '﻿' + satirlar.map(function (r) { return r.map(hucre).join(';'); }).join('\r\n');
+    indir(new Blob([csv], { type: 'text/csv;charset=utf-8' }), dosyaAdi('_denetim.csv'));
+  });
+
+  // --- Kural listesi -----------------------------------------------------
+  var tabloKurallari = KURALLAR.concat([BICIM_KURALI]);
+  $('kural-baslik').textContent = 'Kural listesi (' + tabloKurallari.length + ' kural)';
+  $('kural-tablo').innerHTML = tabloKurallari.map(function (k) {
+    return '<tr><td><span class="rozet ' + kacis(k.kategori) + '">' + kacis(k.kategori) + '</span></td>' +
+      '<td><span class="rozet ' + k.seviye + '">' + (k.seviye === 'hata' ? 'Hata' : 'Kontrol') + '</span></td>' +
+      '<td class="ornek">' + kacis(k.ornek) + '</td><td>' + kacis(k.aciklama) + '</td></tr>';
+  }).join('');
+  $('surum').textContent = 'Kural sürümü: ' + (window.KURAL_SURUMU || '—') + ' · ' + tabloKurallari.length + ' kural';
+
+  if (typeof window.BIRIM_KURALLARI === 'undefined') {
+    uyar('birim-kurallari.js yüklenemedi. Dosyada yazım hatası olabilir (silinmiş ` işareti, eksik virgül ya da tırnak).');
+  } else if (!window.KURALLAR) {
+    uyar('tdkkuralları.js yüklenemedi. Dosyada yazım hatası olabilir (eksik virgül, kapanmamış tırnak).');
+  } else if (window.KURAL_HATALARI && window.KURAL_HATALARI.length) {
+    uyar('birim-kurallari.js içinde anlaşılamayan satırlar var: ' + window.KURAL_HATALARI.join(' · '));
+  }
+})();
+</script>
+</body>
+</html>
